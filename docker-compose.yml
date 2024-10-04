@@ -6,32 +6,33 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "5000:5000"  # Mapping Flask's port to host
+      - "5000:5000"
     environment:
       FLASK_ENV: development
-      DATABASE_URL: postgresql://postgres:password@db:5432/mydatabase  # Database connection string
-    command: flask run --host=0.0.0.0  # Run the Flask app
+      DATABASE_URL: postgresql://postgres:password@db:5432/mydatabase
+    command: flask run --host=0.0.0.0
     depends_on:
       db:
-        condition: service_healthy  # Wait for the database to be healthy
+        condition: service_healthy
     networks:
       - app-network
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:5000 || exit 1"]  # Simple health check on Flask app
+      test: ["CMD-SHELL", "curl -f http://localhost:5000 || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
 
   db:
-    image: postgres:12-alpine
+    image: postgres:latest  # Use latest instead of alpine
     volumes:
       - pgdata:/var/lib/postgresql/data
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
       POSTGRES_DB: mydatabase
+    command: ["sh", "-c", "chown -R postgres:postgres /var/lib/postgresql/data && docker-entrypoint.sh postgres"]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -d mydatabase -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
