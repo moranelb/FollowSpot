@@ -30,7 +30,7 @@ pipeline {
                 echo 'Checking if PostgreSQL is running...'
                 script {
                     try {
-                        sh 'docker-compose exec db pg_isready'
+                        sh 'docker-compose exec db pg_isready -U appuser'  // Update to use appuser
                     } catch (Exception e) {
                         error('PostgreSQL is not healthy.')
                     }
@@ -42,7 +42,7 @@ pipeline {
             steps {
                 script {
                     echo 'Verifying PostgreSQL users...'
-                    sh 'docker-compose exec db psql -U postgres -d appdb -c "\\du"'
+                    sh 'docker-compose exec db psql -U appuser -d appdb -c "\\du"'  // Update to use appuser
                 }
             }
         }
