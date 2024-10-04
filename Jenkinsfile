@@ -22,10 +22,9 @@ pipeline {
                         // Build and run Docker containers
                         sh 'docker-compose up --build -d'
                     } catch (e) {
-                        // Capture and print logs from the DB container if there is a failure
                         echo 'Build or startup failed. Fetching PostgreSQL logs...'
                         sh 'docker logs followspot-pipeline-db-1 || true'
-                        throw e  // Rethrow the error to mark the build as failed
+                        throw e
                     }
                 }
             }
@@ -33,8 +32,18 @@ pipeline {
 
         stage('Run Tests') {
             steps {
-                // Run tests inside the app container
-                sh 'docker-compose exec app coverage run -m unittest discover'
+                script {
+                    try {
+                        // Ensure DB setup and tests are run correctly
+                        sh 'docker-compose exec app flask db upgrade'  // Adjust for migrations
+                        sh 'docker-compose exec app coverage run -m unittest discover'
+                    } catch (e) {
+                        echo 'Test execution failed. Fetching app and db logs...'
+                        sh 'docker logs followspot-pipeline-app-1 || true'
+                        sh 'docker logs followspot-pipeline-db-1 || true'
+                        throw e
+                    }
+                }
             }
         }
 
@@ -52,7 +61,7 @@ pipeline {
         stage('Teardown') {
             steps {
                 script {
-                    // Stop and remove containers and associated volumes for clean slate
+                    // Clean up Docker containers and volumes after build
                     sh 'docker-compose down -v'
                 }
             }
@@ -61,7 +70,6 @@ pipeline {
 
     post {
         always {
-            // Clean the workspace after each run
             cleanWs()
         }
     }
