@@ -20,6 +20,9 @@ RUN chown -R postgresuser /app
 # Switch to the non-root user
 USER postgresuser
 
+# Add .local/bin to PATH so locally installed Python packages are found
+ENV PATH="/home/postgresuser/.local/bin:$PATH"
+
 # Copy the requirements file and install dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
