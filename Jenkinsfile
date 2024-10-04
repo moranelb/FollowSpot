@@ -1,25 +1,28 @@
 pipeline {
-    agent {
-        label 'docker-slave'
-    }
+    agent any
 
     environment {
-        DOCKER_CREDENTIALS = credentials('dockerhub-cred')
-        GITHUB_CREDENTIALS = credentials('github-creds')
+        DOCKER_CREDS = credentials('dockerhub-cred')
+        GITHUB_CREDS = credentials('github-creds')
     }
 
     stages {
-        stage('Checkout SCM') {
+        stage('Checkout') {
             steps {
-                git credentialsId: 'github-creds', url: 'https://github.com/moranelb/FollowSpot.git'
+                // Check out the code from the repository
+                git branch: 'master', url: 'https://github.com/moranelb/FollowSpot.git', credentialsId: 'github-creds'
             }
         }
 
         stage('Build and Run with Docker Compose') {
             steps {
                 script {
-                    sh 'docker-compose down'
-                    sh 'docker-compose up --build -d'
+                    try {
+                        // Build and run the app with Docker Compose
+                        sh 'docker-compose up --build -d'
+                    } catch (Exception e) {
+                        error('Error while building or running Docker Compose.')
+                    }
                 }
             }
         }
@@ -28,8 +31,13 @@ pipeline {
             steps {
                 echo 'Checking if PostgreSQL is listening on the expected socket...'
                 script {
-                    sh 'docker exec followspot-pipeline-db-1 ls /var/run/postgresql/.s.PGSQL.5432'
-                    sh 'docker-compose ps'
+                    try {
+                        // Ensure PostgreSQL is running and healthy
+                        sh 'docker exec followspot-pipeline-db-1 ls /var/run/postgresql/.s.PGSQL.5432'
+                        sh 'docker-compose ps'
+                    } catch (Exception e) {
+                        error('PostgreSQL is not healthy or not listening as expected.')
+                    }
                 }
             }
         }
@@ -37,13 +45,14 @@ pipeline {
         stage('Run Tests') {
             steps {
                 script {
-                    sh 'docker-compose exec app coverage run -m unittest discover'
-                }
-            }
-            post {
-                failure {
-                    echo 'Tests failed, fetching database logs...'
-                    sh 'docker logs followspot-pipeline-db-1'
+                    try {
+                        // Run the test suite using coverage
+                        sh 'docker-compose exec app coverage run -m unittest discover'
+                    } catch (Exception e) {
+                        echo 'Tests failed, fetching database logs...'
+                        sh 'docker logs followspot-pipeline-db-1'
+                        error('Tests failed during execution.')
+                    }
                 }
             }
         }
@@ -51,29 +60,25 @@ pipeline {
         stage('Push to Docker Hub') {
             when {
                 not {
-                    failure()
+                    equals expected: 'FAILURE', actual: currentBuild.result
                 }
             }
             steps {
-                echo 'Pushing Docker image to Docker Hub...'
                 script {
-                    sh 'docker login -u $DOCKER_CREDENTIALS_USR -p $DOCKER_CREDENTIALS_PSW'
-                    sh 'docker tag followspot-pipeline-app:latest your-dockerhub-repo/followspot-pipeline-app:latest'
-                    sh 'docker push your-dockerhub-repo/followspot-pipeline-app:latest'
+                    docker.withRegistry('https://registry.hub.docker.com', 'dockerhub-cred') {
+                        def appImage = docker.image('followspot-pipeline-app')
+                        appImage.push("${env.BUILD_NUMBER}")
+                        appImage.push('latest')
+                    }
                 }
-            }
-        }
-
-        stage('Teardown') {
-            steps {
-                echo 'Stopping and removing containers...'
-                sh 'docker-compose down'
             }
         }
     }
 
     post {
         always {
+            echo 'Cleaning up...'
+            sh 'docker-compose down'
             cleanWs()
         }
     }
