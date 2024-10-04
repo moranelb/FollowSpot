@@ -14,12 +14,34 @@ pipeline {
             }
         }
 
+        stage('Check PATH') {
+            steps {
+                script {
+                    // Verify the PATH to see if Docker is included
+                    sh 'echo $PATH'
+                }
+            }
+        }
+
+        stage('Check Docker') {
+            steps {
+                script {
+                    // Ensure Docker is installed and accessible
+                    try {
+                        sh 'docker --version'
+                    } catch (Exception e) {
+                        error('Docker is not installed or not accessible in the Jenkins environment.')
+                    }
+                }
+            }
+        }
+
         stage('Build and Run with Docker Compose') {
             steps {
                 script {
                     try {
-                        // Build and run the app with Docker Compose using explicit path
-                        sh '/usr/bin/docker compose up --build -d'
+                        // Build and run the app with Docker Compose
+                        sh 'docker-compose up --build -d'
                     } catch (Exception e) {
                         error('Error while building or running Docker Compose.')
                     }
@@ -33,8 +55,8 @@ pipeline {
                 script {
                     try {
                         // Ensure PostgreSQL is running and healthy
-                        sh '/usr/bin/docker exec followspot-pipeline-db-1 ls /var/run/postgresql/.s.PGSQL.5432'
-                        sh '/usr/bin/docker compose ps'
+                        sh 'docker exec followspot-pipeline-db-1 ls /var/run/postgresql/.s.PGSQL.5432'
+                        sh 'docker-compose ps'
                     } catch (Exception e) {
                         error('PostgreSQL is not healthy or not listening as expected.')
                     }
@@ -47,10 +69,10 @@ pipeline {
                 script {
                     try {
                         // Run the test suite using coverage
-                        sh '/usr/bin/docker compose exec app coverage run -m unittest discover'
+                        sh 'docker-compose exec app coverage run -m unittest discover'
                     } catch (Exception e) {
                         echo 'Tests failed, fetching database logs...'
-                        sh '/usr/bin/docker logs followspot-pipeline-db-1'
+                        sh 'docker logs followspot-pipeline-db-1'
                         error('Tests failed during execution.')
                     }
                 }
@@ -78,7 +100,7 @@ pipeline {
     post {
         always {
             echo 'Cleaning up...'
-            sh '/usr/bin/docker compose down'
+            sh 'docker-compose down'
             cleanWs()
         }
     }
