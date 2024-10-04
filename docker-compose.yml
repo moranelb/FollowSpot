@@ -1,20 +1,6 @@
-version: '3.8'
+version: '3.7'
 
 services:
-  app:
-    build: .
-    ports:
-      - "5000:5000"
-    depends_on:
-      - db
-    environment:
-      - DATABASE_URL=postgresql://postgres:password@db:5432/appdb
-      - FLASK_APP=server.py
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000"]
-      interval: 30s
-      retries: 3
-
   db:
     image: postgres:13
     environment:
@@ -25,10 +11,33 @@ services:
       - db_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 30s
-      retries: 3
-    ports:
-      - "5432:5432"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
+  app:
+    build: .
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@db:5432/appdb
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "5000:5000"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    command: >
+      sh -c "
+      ./wait-for-postgres.sh &&
+      flask run --host=0.0.0.0"
+      
 volumes:
   db_data:
