@@ -1,6 +1,6 @@
 """Server for FollowSpot"""
 from flask import (Flask, jsonify, render_template, request, flash, session, redirect)
-import crud
+import crud  # Ensure this imports correctly
 import os
 import logging  # Import the logging module
 from twilio.rest import Client
