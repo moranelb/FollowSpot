@@ -1,27 +1,28 @@
-version: '3'
+version: '3.8'
+
 services:
   app:
     build: .
     ports:
-      - "3000:3000"
+      - "5000:5000"
     environment:
-      - DB_HOST=postgres
-      - DB_USER=youruser
-      - DB_PASSWORD=yourpassword
-      - DB_NAME=yourdbname
+      DATABASE_URL: postgres://postgres:password@db:5432/appdb
     depends_on:
-      - postgres
+      - db
+    networks:
+      - app-network
 
-  postgres:
-    image: postgres:13
+  db:
+    image: postgres
     environment:
-      POSTGRES_USER: youruser
-      POSTGRES_PASSWORD: yourpassword
-      POSTGRES_DB: yourdbname
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: appdb
     ports:
       - "5432:5432"
+    networks:
+      - app-network
 
-volumes:
-  postgres_data:
+networks:
+  app-network:
+    driver: bridge
