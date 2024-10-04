@@ -1,5 +1,7 @@
 pipeline {
-    agent any
+    agent {
+        label 'jenkins-slave'
+    }
 
     environment {
         DOCKER_CREDS = credentials('dockerhub-cred')
@@ -16,7 +18,11 @@ pipeline {
         stage('Build and Run with Docker Compose') {
             steps {
                 script {
-                    sh 'docker-compose up --build -d'
+                    try {
+                        sh 'docker-compose up --build -d'
+                    } catch (Exception e) {
+                        error('Error while building or running Docker Compose.')
+                    }
                 }
             }
         }
@@ -25,8 +31,12 @@ pipeline {
             steps {
                 echo 'Checking if PostgreSQL is listening on the expected socket...'
                 script {
-                    sh 'docker exec followspot-pipeline-db-1 ls /var/run/postgresql/.s.PGSQL.5432'
-                    sh 'docker-compose ps'
+                    try {
+                        sh 'docker exec followspot-pipeline-db-1 ls /var/run/postgresql/.s.PGSQL.5432'
+                        sh 'docker-compose ps'
+                    } catch (Exception e) {
+                        error('PostgreSQL is not healthy or not listening as expected.')
+                    }
                 }
             }
         }
@@ -34,14 +44,22 @@ pipeline {
         stage('Run Tests') {
             steps {
                 script {
-                    sh 'docker-compose exec app coverage run -m unittest discover'
+                    try {
+                        sh 'docker-compose exec app coverage run -m unittest discover'
+                    } catch (Exception e) {
+                        echo 'Tests failed, fetching database logs...'
+                        sh 'docker logs followspot-pipeline-db-1'
+                        error('Tests failed during execution.')
+                    }
                 }
             }
         }
 
         stage('Push to Docker Hub') {
             when {
-                not { equals expected: 'FAILURE', actual: currentBuild.result }
+                not {
+                    equals expected: 'FAILURE', actual: currentBuild.result
+                }
             }
             steps {
                 script {
