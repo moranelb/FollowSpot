@@ -4,14 +4,14 @@ services:
     image: postgres:13
     environment:
       POSTGRES_DB: appdb
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
+      POSTGRES_USER: appuser  # Changed from postgres to appuser
+      POSTGRES_PASSWORD: apppassword  # Set the corresponding password
     ports:
       - "5432:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U appuser"]  # Updated to check the correct user
       interval: 10s
       timeout: 5s
       retries: 5
@@ -21,7 +21,7 @@ services:
       context: .
     environment:
       - FLASK_APP=server.py
-      - DATABASE_URL=postgres://postgres:password@db:5432/appdb
+      - DATABASE_URL=postgres://appuser:apppassword@db:5432/appdb  # Updated to use appuser
     ports:
       - "5000:5000"
     depends_on:
