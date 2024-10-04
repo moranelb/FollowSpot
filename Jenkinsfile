@@ -13,22 +13,27 @@ pipeline {
             }
         }
 
-        stage('Verify Script Permissions') {
-            steps {
-                script {
-                    // Check permissions for wait-for-postgres.sh
-                    sh 'ls -l ./wait-for-postgres.sh'
-                }
-            }
-        }
-
         stage('Build and Run with Docker Compose') {
             steps {
                 script {
                     try {
+                        // Build and run the app with Docker Compose
                         sh 'docker-compose up --build -d'
                     } catch (Exception e) {
                         error('Error while building or running Docker Compose.')
+                    }
+                }
+            }
+        }
+
+        stage('Verify Script Permissions in Container') {
+            steps {
+                script {
+                    try {
+                        // Check permissions inside the container for wait-for-postgres.sh
+                        sh 'docker-compose exec app ls -l /app/wait-for-postgres.sh'
+                    } catch (Exception e) {
+                        error('Script permissions are incorrect in the running container.')
                     }
                 }
             }
@@ -39,6 +44,7 @@ pipeline {
                 echo 'Checking if PostgreSQL is running...'
                 script {
                     try {
+                        // Ensure PostgreSQL is healthy
                         sh 'docker-compose exec db pg_isready'
                     } catch (Exception e) {
                         error('PostgreSQL is not healthy.')
@@ -51,6 +57,7 @@ pipeline {
             steps {
                 script {
                     try {
+                        // Run tests
                         sh 'docker-compose exec app coverage run -m unittest discover'
                     } catch (Exception e) {
                         echo 'Tests failed, fetching database logs...'
