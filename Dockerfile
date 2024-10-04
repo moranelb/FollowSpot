@@ -1,4 +1,4 @@
-# Use an older Python runtime (3.7) as a parent image
+# Use Python 3.7 slim as a base image
 FROM python:3.7-slim
 
 # Set the working directory
@@ -33,14 +33,5 @@ COPY . .
 # Expose the port the app runs on
 EXPOSE 5000
 
-# Set environment variables
-ENV FLASK_APP=server.py
-ENV DATABASE_URL=postgres://postgres:password@db:5432/appdb
-
-# Command to run the app, including wait logic for Postgres inside the CMD
-CMD bash -c '
-  until pg_isready -h db -U postgres; do
-    echo "Waiting for postgres...";
-    sleep 2;
-  done;
-  flask run --host=0.0.0.0'
+# Command to run the app with PostgreSQL readiness check
+CMD ["/bin/sh", "-c", "while ! pg_isready -h db -p 5432 -U postgres; do echo waiting for database; sleep 2; done && flask run --host=0.0.0.0"]
