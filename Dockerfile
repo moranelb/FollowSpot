@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y \
 # Create a non-root user for PostgreSQL operations
 RUN useradd -m postgresuser
 
-# Copy the wait-for-postgres.sh script and make it executable before switching to the non-root user
+# Copy the wait-for-postgres.sh script and set permissions before switching to the non-root user
 COPY wait-for-postgres.sh /app/wait-for-postgres.sh
 RUN chmod +x /app/wait-for-postgres.sh
 
