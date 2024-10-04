@@ -1,80 +1,70 @@
 pipeline {
-    agent {
-        label 'jenkins-slave'
-    }
-
+    agent { label 'jenkins-slave' }
     environment {
-        GITHUB_CREDENTIALS = credentials('github-creds')
         DOCKER_CREDENTIALS = credentials('dockerhub-cred')
+        GITHUB_CREDENTIALS = credentials('github-creds')
     }
-
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'master', credentialsId: 'github-creds', url: 'https://github.com/moranelb/FollowSpot.git'
+                git credentialsId: 'github-creds', url: 'https://github.com/moranelb/FollowSpot.git'
             }
         }
-
         stage('Build and Run with Docker Compose') {
+            steps {
+                sh 'docker-compose up --build -d'
+            }
+        }
+        stage('Check PostgreSQL Status') {
+            steps {
+                echo 'Checking if PostgreSQL is listening on the expected socket...'
+                sh 'docker exec followspot-pipeline-db-1 ls /var/run/postgresql/.s.PGSQL.5432'
+                sh 'docker-compose ps'
+            }
+        }
+        stage('Run Tests') {
             steps {
                 script {
                     try {
-                        // Build and run Docker containers
-                        sh 'docker-compose up --build -d'
-                    } catch (e) {
-                        // Capture and print logs from the DB container if there is a failure
-                        echo 'Build or startup failed. Fetching PostgreSQL logs...'
-                        sh 'docker logs followspot-pipeline-db-1 || true'
-                        throw e  // Rethrow the error to mark the build as failed
+                        sh 'docker-compose exec app coverage run -m unittest discover'
+                    } catch (Exception e) {
+                        echo 'Tests failed, fetching database logs...'
+                        sh 'docker logs followspot-pipeline-db-1'
+                        error 'Test execution failed!'
                     }
                 }
             }
         }
-
-        stage('Check PostgreSQL Status') {
-            steps {
-                script {
-                    // Check if the PostgreSQL container socket is available
-                    echo 'Checking if PostgreSQL is listening on the expected socket...'
-                    sh 'docker exec followspot-pipeline-db-1 ls /var/run/postgresql/.s.PGSQL.5432 || true'
-                    
-                    // Check the health status of the PostgreSQL container
-                    sh 'docker-compose ps'
+        stage('Push to Docker Hub') {
+            when {
+                not {
+                    expression { currentBuild.result == 'FAILURE' }
                 }
             }
-        }
-
-        stage('Run Tests') {
             steps {
-                // Run tests inside the app container
-                sh 'docker-compose exec app coverage run -m unittest discover'
-            }
-        }
-
-        stage('Push to Docker Hub') {
-            steps {
+                echo 'Pushing Docker image to Docker Hub...'
                 script {
                     docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-cred') {
-                        def appImage = docker.build("moranelb/followspot:${env.BUILD_NUMBER}")
-                        appImage.push()
+                        sh 'docker-compose exec app docker login -u ${DOCKER_CREDENTIALS_USR} -p ${DOCKER_CREDENTIALS_PSW}'
+                        sh 'docker-compose exec app docker push docker.io/library/followspot-pipeline-app:latest'
                     }
                 }
             }
         }
-
         stage('Teardown') {
-            steps {
-                script {
-                    // Stop and remove containers and associated volumes for a clean slate
-                    sh 'docker-compose down -v'
+            when {
+                not {
+                    expression { currentBuild.result == 'FAILURE' }
                 }
+            }
+            steps {
+                echo 'Cleaning up...'
+                sh 'docker-compose down'
             }
         }
     }
-
     post {
         always {
-            // Clean the workspace after each run
             cleanWs()
         }
     }
