@@ -7,8 +7,7 @@ WORKDIR /app
 # Install PostgreSQL client utilities and dependencies
 RUN apt-get update && apt-get install -y \
     postgresql-client \
-    postgresql-common \
-    postgresql && \
+    postgresql-common && \
     rm -rf /var/lib/apt/lists/*
 
 # Create a non-root user for PostgreSQL operations
@@ -35,7 +34,7 @@ EXPOSE 5000
 
 # Set environment variables
 ENV FLASK_APP=server.py
-ENV DATABASE_URL=postgres://postgres:password@db:5432/appdb
+ENV DATABASE_URL=postgresql://postgres:password@db:5432/appdb
 
 # Command to run the app
 CMD ["flask", "run", "--host=0.0.0.0"]
