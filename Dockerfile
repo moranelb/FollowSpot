@@ -34,4 +34,4 @@ COPY . .
 EXPOSE 5000
 
 # Command to run the app with PostgreSQL readiness check
-CMD ["/bin/sh", "-c", "while ! pg_isready -h db -p 5432 -U postgres; do echo waiting for database; sleep 2; done && flask run --host=0.0.0.0"]
+CMD ["/bin/sh", "-c", "while ! pg_isready -h db -p 5432 -U appuser; do echo waiting for database; sleep 2; done && flask run --host=0.0.0.0"]
