@@ -1,17 +1,22 @@
-# Stage 1: Build the app
-FROM node:16-alpine as build
+# Use an official Python runtime as a parent image
+FROM python:3.9-slim
 
+# Set the working directory
 WORKDIR /app
-COPY package*.json ./
-RUN npm install
+
+# Copy the requirements file and install dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the rest of the application code
 COPY . .
-RUN npm run build
 
-# Stage 2: Production Environment
-FROM node:16-alpine
+# Expose the port the app runs on
+EXPOSE 5000
 
-WORKDIR /app
-COPY --from=build /app/dist ./dist
-COPY --from=build /app/node_modules ./node_modules
-EXPOSE 3000
-CMD ["npm", "start"]
+# Set environment variables
+ENV FLASK_APP=server.py
+ENV DATABASE_URL=postgres://postgres:password@db:5432/appdb
+
+# Command to run the app
+CMD ["flask", "run", "--host=0.0.0.0"]
