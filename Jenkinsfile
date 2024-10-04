@@ -1,65 +1,68 @@
 pipeline {
-    agent { label 'jenkins-slave' }
+    agent {
+        label 'docker-slave'
+    }
     environment {
         DOCKER_CREDENTIALS = credentials('dockerhub-cred')
         GITHUB_CREDENTIALS = credentials('github-creds')
     }
     stages {
-        stage('Checkout') {
+        stage('Checkout SCM') {
             steps {
-                git credentialsId: 'github-creds', url: 'https://github.com/moranelb/FollowSpot.git'
+                checkout scm
             }
         }
         stage('Build and Run with Docker Compose') {
             steps {
-                sh 'docker-compose up --build -d'
+                script {
+                    sh 'docker-compose up --build -d'
+                }
             }
         }
         stage('Check PostgreSQL Status') {
             steps {
                 echo 'Checking if PostgreSQL is listening on the expected socket...'
-                sh 'docker exec followspot-pipeline-db-1 ls /var/run/postgresql/.s.PGSQL.5432'
-                sh 'docker-compose ps'
+                script {
+                    sh 'docker exec followspot-pipeline-db-1 ls /var/run/postgresql/.s.PGSQL.5432'
+                    sh 'docker-compose ps'
+                }
             }
         }
         stage('Run Tests') {
             steps {
                 script {
-                    try {
-                        sh 'docker-compose exec app coverage run -m unittest discover'
-                    } catch (Exception e) {
-                        echo 'Tests failed, fetching database logs...'
-                        sh 'docker logs followspot-pipeline-db-1'
-                        error 'Test execution failed!'
-                    }
+                    sh 'docker-compose exec app coverage run -m unittest discover'
+                }
+            }
+            post {
+                failure {
+                    echo 'Tests failed, fetching database logs...'
+                    sh 'docker logs followspot-pipeline-db-1'
                 }
             }
         }
         stage('Push to Docker Hub') {
             when {
-                not {
-                    expression { currentBuild.result == 'FAILURE' }
-                }
+                expression { return currentBuild.result == null || currentBuild.result == 'SUCCESS' }
             }
             steps {
-                echo 'Pushing Docker image to Docker Hub...'
+                echo 'Pushing to Docker Hub...'
                 script {
-                    docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-cred') {
-                        sh 'docker-compose exec app docker login -u ${DOCKER_CREDENTIALS_USR} -p ${DOCKER_CREDENTIALS_PSW}'
-                        sh 'docker-compose exec app docker push docker.io/library/followspot-pipeline-app:latest'
-                    }
+                    sh 'docker login -u $DOCKER_CREDENTIALS_USR -p $DOCKER_CREDENTIALS_PSW'
+                    sh 'docker tag followspot-pipeline-app $DOCKER_CREDENTIALS_USR/followspot-pipeline-app:latest'
+                    sh 'docker push $DOCKER_CREDENTIALS_USR/followspot-pipeline-app:latest'
                 }
             }
         }
         stage('Teardown') {
             when {
-                not {
-                    expression { currentBuild.result == 'FAILURE' }
-                }
+                expression { return currentBuild.result == null || currentBuild.result == 'SUCCESS' }
             }
             steps {
                 echo 'Cleaning up...'
-                sh 'docker-compose down'
+                script {
+                    sh 'docker-compose down'
+                }
             }
         }
     }
