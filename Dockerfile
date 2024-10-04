@@ -14,6 +14,10 @@ RUN apt-get update && apt-get install -y \
 # Create a non-root user for PostgreSQL operations
 RUN useradd -m postgresuser
 
+# Copy the wait-for-postgres.sh script and make it executable before switching to the non-root user
+COPY wait-for-postgres.sh /app/wait-for-postgres.sh
+RUN chmod +x /app/wait-for-postgres.sh
+
 # Set ownership of the app directory to the non-root user
 RUN chown -R postgresuser /app
 
@@ -22,10 +26,6 @@ USER postgresuser
 
 # Add .local/bin to PATH so locally installed Python packages are found
 ENV PATH="/home/postgresuser/.local/bin:$PATH"
-
-# Copy the wait-for-postgres.sh script and make it executable
-COPY wait-for-postgres.sh /app/wait-for-postgres.sh
-RUN chmod +x /app/wait-for-postgres.sh
 
 # Copy the requirements file and install dependencies
 COPY requirements.txt . 
