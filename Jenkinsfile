@@ -22,7 +22,7 @@ pipeline {
                         // Build and run Docker containers
                         sh 'docker-compose up --build -d'
                     } catch (e) {
-                        // Capture PostgreSQL logs in case of failure
+                        // Capture and print logs from the DB container if there is a failure
                         echo 'Build or startup failed. Fetching PostgreSQL logs...'
                         sh 'docker logs followspot-pipeline-db-1 || true'
                         throw e  // Rethrow the error to mark the build as failed
@@ -33,17 +33,8 @@ pipeline {
 
         stage('Run Tests') {
             steps {
-                script {
-                    try {
-                        // Run tests inside the app container
-                        sh 'docker-compose exec app coverage run -m unittest discover'
-                    } catch (e) {
-                        echo 'Tests failed. Fetching app and db logs...'
-                        sh 'docker logs followspot-pipeline-app-1 || true'
-                        sh 'docker logs followspot-pipeline-db-1 || true'
-                        throw e
-                    }
-                }
+                // Run tests inside the app container
+                sh 'docker-compose exec app coverage run -m unittest discover'
             }
         }
 
@@ -61,7 +52,7 @@ pipeline {
         stage('Teardown') {
             steps {
                 script {
-                    // Stop and remove containers and associated volumes
+                    // Stop and remove containers and associated volumes for clean slate
                     sh 'docker-compose down -v'
                 }
             }
@@ -70,6 +61,7 @@ pipeline {
 
     post {
         always {
+            // Clean the workspace after each run
             cleanWs()
         }
     }
