@@ -11,20 +11,29 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                // The 'branch' argument should be outside the 'git' function and not as 'git branch:'
                 git branch: 'master', credentialsId: 'github-creds', url: 'https://github.com/moranelb/FollowSpot.git'
             }
         }
 
         stage('Build and Run with Docker Compose') {
             steps {
-                sh 'docker-compose up --build -d'
+                script {
+                    try {
+                        // Build and run Docker containers
+                        sh 'docker-compose up --build -d'
+                    } catch (e) {
+                        // Capture and print logs from the DB container if there is a failure
+                        echo 'Build or startup failed. Fetching PostgreSQL logs...'
+                        sh 'docker logs followspot-pipeline-db-1'
+                        throw e  // Rethrow the error to mark the build as failed
+                    }
+                }
             }
         }
 
         stage('Run Tests') {
             steps {
-                // Run the tests using 'coverage' inside the app container
+                // Run tests inside the app container
                 sh 'docker-compose exec app coverage run -m unittest discover'
             }
         }
@@ -33,7 +42,6 @@ pipeline {
             steps {
                 script {
                     docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-cred') {
-                        // Build and push the Docker image to Docker Hub
                         def appImage = docker.build("moranelb/followspot:${env.BUILD_NUMBER}")
                         appImage.push()
                     }
@@ -43,7 +51,7 @@ pipeline {
 
         stage('Teardown') {
             steps {
-                // Stop and remove the Docker containers after the build
+                // Stop and remove containers after the build
                 sh 'docker-compose down'
             }
         }
