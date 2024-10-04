@@ -2,48 +2,52 @@ pipeline {
     agent {
         label 'jenkins-slave'
     }
+
     environment {
-        DOCKERHUB_CREDENTIALS = credentials('dockerhub-cred')
-        DOCKER_IMAGE = "moranelb/followspot"
+        GITHUB_CREDENTIALS = credentials('github-creds')
+        DOCKER_CREDENTIALS = credentials('dockerhub-cred')
     }
+
     stages {
-        stage('Checkout Code') {
+        stage('Checkout') {
             steps {
-                git url: 'https://github.com/moranelb/FollowSpot.git', branch: 'master'
+                git credentialsId: 'github-creds', url: 'https://github.com/moranelb/FollowSpot.git', git branch: 'master'
             }
         }
-        stage('Build Docker Image') {
+
+        stage('Build and Run with Docker Compose') {
+            steps {
+                sh 'docker-compose up --build -d'
+            }
+        }
+
+        stage('Run Tests') {
+            steps {
+                sh 'docker-compose exec app coverage run -m unittest discover'
+            }
+        }
+
+        stage('Push to Docker Hub') {
             steps {
                 script {
-                    sh 'docker-compose build'
+                    docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-cred') {
+                        def appImage = docker.build("moranelb/followspot:${env.BUILD_NUMBER}")
+                        appImage.push()
+                    }
                 }
             }
         }
-        stage('Test Application') {
+
+        stage('Teardown') {
             steps {
-                script {
-                    sh 'docker-compose up -d'
-                    sleep(10) // wait for the containers to be up
-                    sh 'curl -f http://localhost:3000' // Check if app is running
-                }
-            }
-        }
-        stage('Push Docker Image') {
-            steps {
-                script {
-                    sh """
-                    docker login -u ${DOCKERHUB_CREDENTIALS_USR} -p ${DOCKERHUB_CREDENTIALS_PSW}
-                    docker tag followspot_app ${DOCKER_IMAGE}:latest
-                    docker push ${DOCKER_IMAGE}:latest
-                    """
-                }
+                sh 'docker-compose down'
             }
         }
     }
+
     post {
         always {
-            sh 'docker-compose down'
-            cleanWs() // Clean up the workspace after execution
+            cleanWs()
         }
     }
 }
