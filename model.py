@@ -109,19 +109,19 @@ class Media(db.Model):
 
 def connect_to_db(flask_app):
     """
-    control the db_uri based on the development environment
+    Control the db_uri based on the development environment
     possible environments:
-        -TESTING
-        -LOCAL_DEV
-        -PRODUCTION
+        - TESTING
+        - LOCAL_DEV
+        - PRODUCTION
     """
     # Use the appropriate database URI based on the environment
     if os.environ.get("TESTING"):
-        flask_app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql:///testdb"
+        flask_app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://postgres:password@localhost:5432/testdb"
     elif os.environ.get("LOCAL_DEV"):
-        flask_app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://appuser:apppassword@localhost:5433/appdb"  # Update this line
+        flask_app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://postgres:password@localhost:5433/postgres"
     else:
-        flask_app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DB_URI", "postgresql://appuser:apppassword@localhost:5433/appdb")  # Update this line
+        flask_app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DB_URI", "postgresql://postgres:password@db:5432/appdb")
     
     # Log the connection string being used
     logging.debug(f"Connecting to database with URI: {flask_app.config['SQLALCHEMY_DATABASE_URI']}")
