@@ -4,6 +4,7 @@ pipeline {
     environment {
         DOCKER_CREDS = credentials('dockerhub-cred')
         GITHUB_CREDS = credentials('github-creds')
+        DOCKER_CLI_PATH = '/usr/bin/docker' // Adjusted Docker CLI Path
     }
 
     stages {
@@ -18,8 +19,8 @@ pipeline {
             steps {
                 script {
                     try {
-                        // Build and run the app with Docker Compose
-                        sh 'docker-compose up --build -d'
+                        // Build and run the app with Docker Compose using the correct path
+                        sh '${DOCKER_CLI_PATH} compose up --build -d'
                     } catch (Exception e) {
                         error('Error while building or running Docker Compose.')
                     }
@@ -33,8 +34,8 @@ pipeline {
                 script {
                     try {
                         // Ensure PostgreSQL is running and healthy
-                        sh 'docker exec followspot-pipeline-db-1 ls /var/run/postgresql/.s.PGSQL.5432'
-                        sh 'docker-compose ps'
+                        sh '${DOCKER_CLI_PATH} exec followspot-pipeline-db-1 ls /var/run/postgresql/.s.PGSQL.5432'
+                        sh '${DOCKER_CLI_PATH} compose ps'
                     } catch (Exception e) {
                         error('PostgreSQL is not healthy or not listening as expected.')
                     }
@@ -47,10 +48,10 @@ pipeline {
                 script {
                     try {
                         // Run the test suite using coverage
-                        sh 'docker-compose exec app coverage run -m unittest discover'
+                        sh '${DOCKER_CLI_PATH} compose exec app coverage run -m unittest discover'
                     } catch (Exception e) {
                         echo 'Tests failed, fetching database logs...'
-                        sh 'docker logs followspot-pipeline-db-1'
+                        sh '${DOCKER_CLI_PATH} logs followspot-pipeline-db-1'
                         error('Tests failed during execution.')
                     }
                 }
@@ -78,7 +79,7 @@ pipeline {
     post {
         always {
             echo 'Cleaning up...'
-            sh 'docker-compose down'
+            sh '${DOCKER_CLI_PATH} compose down'
             cleanWs()
         }
     }
