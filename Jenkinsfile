@@ -24,7 +24,7 @@ pipeline {
                     } catch (e) {
                         // Capture and print logs from the DB container if there is a failure
                         echo 'Build or startup failed. Fetching PostgreSQL logs...'
-                        sh 'docker logs followspot-pipeline-db-1'
+                        sh 'docker logs followspot-pipeline-db-1 || true'
                         throw e  // Rethrow the error to mark the build as failed
                     }
                 }
@@ -51,8 +51,10 @@ pipeline {
 
         stage('Teardown') {
             steps {
-                // Stop and remove containers after the build
-                sh 'docker-compose down'
+                script {
+                    // Stop and remove containers and associated volumes for clean slate
+                    sh 'docker-compose down -v'
+                }
             }
         }
     }
