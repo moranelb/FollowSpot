@@ -19,6 +19,7 @@ services:
   app:
     build:
       context: .
+    command: ["./wait-for-postgres.sh", "db", "flask", "run", "--host=0.0.0.0"]
     environment:
       - FLASK_APP=server.py
       - DATABASE_URL=postgres://postgres:password@db:5432/appdb
