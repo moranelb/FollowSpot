@@ -35,7 +35,7 @@ EXPOSE 5000
 
 # Set environment variables
 ENV FLASK_APP=server.py
-ENV DATABASE_URL=postgresql://postgres:password@db:5432/mydatabase  # Ensure this matches
+ENV DATABASE_URL=postgresql://postgres:password@db:5432/mydatabase  # Correctly formatted
 
 # Run the Flask app
 CMD ["flask", "run", "--host=0.0.0.0"]
