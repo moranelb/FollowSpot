@@ -1,23 +1,25 @@
-# Use Python 3.7 as the base image
+# Use an older Python runtime (3.7) as a parent image
 FROM python:3.7-slim
 
-# Set the working directory inside the container
+# Set the working directory
 WORKDIR /app
 
-# Copy the requirements file and install Python dependencies
+# Install PostgreSQL client utilities
+RUN apt-get update && apt-get install -y postgresql-client
+
+# Copy the requirements file and install dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the application code into the working directory
+# Copy the rest of the application code
 COPY . .
 
-# Expose the Flask app port
+# Expose the port the app runs on
 EXPOSE 5000
 
 # Set environment variables
 ENV FLASK_APP=server.py
-ENV FLASK_ENV=development
-ENV DATABASE_URL=postgresql://postgres:password@db:5432/mydatabase
+ENV DATABASE_URL=postgres://postgres:password@db:5432/appdb
 
-# Ensure the database connection is ready before starting the app
+# Command to run the app
 CMD ["flask", "run", "--host=0.0.0.0"]
