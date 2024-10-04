@@ -23,7 +23,7 @@ services:
       retries: 5
 
   db:
-    image: postgres:13  # Set to PostgreSQL version 13 to match existing data directory
+    image: postgres:13
     volumes:
       - pgdata:/var/lib/postgresql/data
     environment:
@@ -39,7 +39,7 @@ services:
       - app-network
 
 volumes:
-  pgdata:  # Persist the PostgreSQL data
+  pgdata:
 
 networks:
   app-network:
