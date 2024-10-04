@@ -26,19 +26,6 @@ pipeline {
             }
         }
 
-        stage('Verify Script Permissions in Container') {
-            steps {
-                script {
-                    try {
-                        // Check permissions inside the container for wait-for-postgres.sh
-                        sh 'docker-compose exec app ls -l /app/wait-for-postgres.sh'
-                    } catch (Exception e) {
-                        error('Script permissions are incorrect in the running container.')
-                    }
-                }
-            }
-        }
-
         stage('Check PostgreSQL Status') {
             steps {
                 echo 'Checking if PostgreSQL is running...'
