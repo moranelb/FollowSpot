@@ -1,7 +1,5 @@
 pipeline {
-    agent {
-        label 'jenkins-slave'
-    }
+    agent { label 'jenkins-slave' }
 
     environment {
         DOCKER_CREDS = credentials('dockerhub-cred')
@@ -12,6 +10,15 @@ pipeline {
         stage('Checkout') {
             steps {
                 git branch: 'master', url: 'https://github.com/moranelb/FollowSpot.git', credentialsId: 'github-creds'
+            }
+        }
+
+        stage('Verify Script Permissions') {
+            steps {
+                script {
+                    // Check permissions for wait-for-postgres.sh
+                    sh 'ls -l ./wait-for-postgres.sh'
+                }
             }
         }
 
@@ -29,13 +36,12 @@ pipeline {
 
         stage('Check PostgreSQL Status') {
             steps {
-                echo 'Checking if PostgreSQL is listening on the expected socket...'
+                echo 'Checking if PostgreSQL is running...'
                 script {
                     try {
-                        sh 'docker exec followspot-pipeline-db-1 ls /var/run/postgresql/.s.PGSQL.5432'
-                        sh 'docker-compose ps'
+                        sh 'docker-compose exec db pg_isready'
                     } catch (Exception e) {
-                        error('PostgreSQL is not healthy or not listening as expected.')
+                        error('PostgreSQL is not healthy.')
                     }
                 }
             }
@@ -57,9 +63,7 @@ pipeline {
 
         stage('Push to Docker Hub') {
             when {
-                not {
-                    equals expected: 'FAILURE', actual: currentBuild.result
-                }
+                not { equals expected: 'FAILURE', actual: currentBuild.result }
             }
             steps {
                 script {
