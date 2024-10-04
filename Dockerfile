@@ -1,10 +1,10 @@
-# Use an older Python runtime (3.7) as a parent image
+# Use Python 3.7-slim as a base image
 FROM python:3.7-slim
 
-# Set the working directory
+# Set working directory inside the container
 WORKDIR /app
 
-# Install PostgreSQL client utilities and dependencies
+# Install PostgreSQL client and dependencies
 RUN apt-get update && apt-get install -y \
     postgresql-client \
     postgresql-common \
@@ -14,28 +14,28 @@ RUN apt-get update && apt-get install -y \
 # Create a non-root user for PostgreSQL operations
 RUN useradd -m postgresuser
 
-# Set ownership of the app directory to the non-root user
+# Change ownership of the /app directory to the non-root user
 RUN chown -R postgresuser /app
 
 # Switch to the non-root user
 USER postgresuser
 
-# Add .local/bin to PATH so locally installed Python packages are found
+# Add .local/bin to PATH for locally installed Python packages
 ENV PATH="/home/postgresuser/.local/bin:$PATH"
 
 # Copy the requirements file and install dependencies
-COPY requirements.txt . 
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the application code
+# Copy the rest of the app code to the container
 COPY . .
 
-# Expose the port the app runs on
+# Expose the application port
 EXPOSE 5000
 
 # Set environment variables
 ENV FLASK_APP=server.py
-ENV DATABASE_URL=postgresql://postgres:password@db:5432/mydatabase  # Updated to match the database credentials
+ENV DATABASE_URL=postgresql://postgres:password@db:5432/mydatabase  # Ensure this matches
 
-# Command to run the app
+# Run the Flask app
 CMD ["flask", "run", "--host=0.0.0.0"]
