@@ -4,8 +4,12 @@ FROM python:3.7-slim
 # Set the working directory
 WORKDIR /app
 
-# Install PostgreSQL client utilities
-RUN apt-get update && apt-get install -y postgresql-client
+# Install PostgreSQL client utilities and dependencies
+RUN apt-get update && apt-get install -y \
+    postgresql-client \
+    postgresql-common \
+    postgresql && \
+    rm -rf /var/lib/apt/lists/*
 
 # Copy the requirements file and install dependencies
 COPY requirements.txt .
