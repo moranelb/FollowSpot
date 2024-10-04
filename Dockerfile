@@ -23,6 +23,10 @@ USER postgresuser
 # Add .local/bin to PATH so locally installed Python packages are found
 ENV PATH="/home/postgresuser/.local/bin:$PATH"
 
+# Copy the wait-for-postgres.sh script and make it executable
+COPY wait-for-postgres.sh /app/wait-for-postgres.sh
+RUN chmod +x /app/wait-for-postgres.sh
+
 # Copy the requirements file and install dependencies
 COPY requirements.txt . 
 RUN pip install --no-cache-dir -r requirements.txt
@@ -37,5 +41,5 @@ EXPOSE 5000
 ENV FLASK_APP=server.py
 ENV DATABASE_URL=postgres://postgres:password@db:5432/appdb
 
-# Command to run the app
-CMD ["flask", "run", "--host=0.0.0.0"]
+# Command to run the app, using wait-for-postgres.sh to ensure DB is ready
+CMD ["/app/wait-for-postgres.sh", "flask", "run", "--host=0.0.0.0"]
