@@ -1,15 +1,17 @@
 import os
+import logging  # Import the logging module
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
 
+# Set up basic logging configuration
+logging.basicConfig(level=logging.DEBUG)
+
 ###########################USER#############################################
 
 class User(db.Model):
     """Data model for a user"""
-    # TODO: remove nullables below for testing
-
     __tablename__ = 'users'
 
     user_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -17,13 +19,12 @@ class User(db.Model):
     last_name = db.Column(db.String(20), nullable=False)
     email = db.Column(db.String(40), nullable=False, unique=True)
     password = db.Column(db.String(64), nullable=False)
-    phone = db. Column(db.String(20), nullable=False)
+    phone = db.Column(db.String(20), nullable=False)
 
     projects = db.relationship('Project', backref='user')
 
     def __repr__(self):
         """Display info about user"""
-
         return f'<User user_id={self.user_id}, first_name={self.first_name}, last_name={self.last_name}, email={self.email}, password={self.password}, phone={self.phone}>'
 
 ############################PROJECT############################################
@@ -43,9 +44,7 @@ class Project(db.Model):
 
     def __repr__(self):
         """Display info about user"""
-
-        return f'<Project project_id={self.project_id}, user_id={self.user_id}, industry={self.industry}, project_title={self.project_title}, company={self.company}, casting_office={self. casting_office}, agency={self.agency}>'
-
+        return f'<Project project_id={self.project_id}, user_id={self.user_id}, industry={self.industry}, project_title={self.project_title}, company={self.company}, casting_office={self.casting_office}, agency={self.agency}>'
 
 ##########################AUDITION##############################################
 
@@ -63,34 +62,31 @@ class Audition(db.Model):
     role = db.Column(db.String)
     notes = db.Column(db.String, nullable=True)
 
-    """establishing relationships"""
     user = db.relationship('User', backref='auditions')
     project = db.relationship('Project', backref='auditions')
     medias = db.relationship('Media', backref='auditions')
 
     def __repr__(self):
         """Display info about audition"""
-
         return f'<Audition audition_id={self.audition_id}, user_id={self.user_id}, project_id={self.project_id}, date={self.date}, callback={self.callback}, role={self.role}, location={self.location}, notes={self.notes}>'
 
     def to_dict(self):
         return {
-            'audition_id' : self.audition_id,
-            'user_id' : self.user_id,
-            'industry' : self.project.industry,
-            'project_title' : self.project.project_title,
-            'company' : self.project.company,
-            'role' : self.role,
-            'date' : self.date,
-            'location' : self.location,
-            'casting_office' : self.project.casting_office,
-            'agency' : self.project.agency,
-            'notes' : self.notes,
-            'medias' : self.medias
-        }   
+            'audition_id': self.audition_id,
+            'user_id': self.user_id,
+            'industry': self.project.industry,
+            'project_title': self.project.project_title,
+            'company': self.project.company,
+            'role': self.role,
+            'date': self.date,
+            'location': self.location,
+            'casting_office': self.project.casting_office,
+            'agency': self.project.agency,
+            'notes': self.notes,
+            'medias': self.medias
+        }
 
 ##########################MEDIA##############################################
-
 
 class Media(db.Model):
     """Data model for media"""
@@ -102,17 +98,14 @@ class Media(db.Model):
     audition_id = db.Column(db.Integer, db.ForeignKey('auditions.audition_id'))
     media_title = db.Column(db.String)
     link = db.Column(db.String)
-    # public_id = db.Column(db.String)
 
     user = db.relationship('User', backref='media')
 
     def __repr__(self):
         """Display info about media"""
-
         return f'<Media media_id={self.media_id}, audition_id={self.audition_id}, media_title={self.media_title}, link={self.link}>'
 
 ########################################################################
-
 
 def connect_to_db(flask_app):
     """
@@ -122,24 +115,25 @@ def connect_to_db(flask_app):
         -LOCAL_DEV
         -PRODUCTION
     """
+    # Use the appropriate database URI based on the environment
     if os.environ.get("TESTING"):
         flask_app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql:///testdb"
     elif os.environ.get("LOCAL_DEV"):
-        flask_app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://postgres:@localhost:5433/postgres"
-    else:  
-        flask_app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DB_URI", "postgresql://postgres:@localhost:5433/postgres")
+        flask_app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://appuser:apppassword@localhost:5433/appdb"  # Update this line
+    else:
+        flask_app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DB_URI", "postgresql://appuser:apppassword@localhost:5433/appdb")  # Update this line
     
-    #additional rules:
+    # Log the connection string being used
+    logging.debug(f"Connecting to database with URI: {flask_app.config['SQLALCHEMY_DATABASE_URI']}")
+
+    # Additional rules:
     flask_app.config['SQLALCHEMY_ECHO'] = False
     flask_app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-    print(flask_app.config['SQLALCHEMY_DATABASE_URI'])
     db.app = flask_app
     db.init_app(flask_app)
 
-    print('Connected to the db!')
-
-
+    logging.info('Connected to the db!')
 
 if __name__ == '__main__':
     from server import app
