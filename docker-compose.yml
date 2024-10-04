@@ -9,6 +9,7 @@ services:
       - "5000:5000"  # Mapping Flask's port to host
     environment:
       FLASK_ENV: development
+      DATABASE_URL: postgresql://postgres:password@db:5432/mydatabase  # Database connection string
     command: flask run --host=0.0.0.0  # Run the Flask app
     depends_on:
       db:
@@ -30,7 +31,7 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: mydatabase
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -d mydatabase -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
