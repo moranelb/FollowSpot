@@ -1,24 +1,24 @@
 pipeline {
-    agent {
-        label 'docker-slave'
-    }
+    agent { label 'jenkins-slave' }
+
     environment {
-        DOCKER_CREDENTIALS = credentials('dockerhub-cred')
         GITHUB_CREDENTIALS = credentials('github-creds')
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub-cred')
     }
+
     stages {
         stage('Checkout SCM') {
             steps {
-                checkout scm
+                git credentialsId: 'github-creds', url: 'https://github.com/moranelb/FollowSpot.git'
             }
         }
+
         stage('Build and Run with Docker Compose') {
             steps {
-                script {
-                    sh 'docker-compose up --build -d'
-                }
+                sh 'docker-compose up --build -d'
             }
         }
+
         stage('Check PostgreSQL Status') {
             steps {
                 echo 'Checking if PostgreSQL is listening on the expected socket...'
@@ -28,47 +28,26 @@ pipeline {
                 }
             }
         }
+
         stage('Run Tests') {
             steps {
                 script {
-                    sh 'docker-compose exec app coverage run -m unittest discover'
-                }
-            }
-            post {
-                failure {
-                    echo 'Tests failed, fetching database logs...'
-                    sh 'docker logs followspot-pipeline-db-1'
-                }
-            }
-        }
-        stage('Push to Docker Hub') {
-            when {
-                expression { return currentBuild.result == null || currentBuild.result == 'SUCCESS' }
-            }
-            steps {
-                echo 'Pushing to Docker Hub...'
-                script {
-                    sh 'docker login -u $DOCKER_CREDENTIALS_USR -p $DOCKER_CREDENTIALS_PSW'
-                    sh 'docker tag followspot-pipeline-app $DOCKER_CREDENTIALS_USR/followspot-pipeline-app:latest'
-                    sh 'docker push $DOCKER_CREDENTIALS_USR/followspot-pipeline-app:latest'
-                }
-            }
-        }
-        stage('Teardown') {
-            when {
-                expression { return currentBuild.result == null || currentBuild.result == 'SUCCESS' }
-            }
-            steps {
-                echo 'Cleaning up...'
-                script {
-                    sh 'docker-compose down'
+                    sh 'docker-compose exec app coverage run -m unittest discover || docker logs followspot-pipeline-app-1'
                 }
             }
         }
     }
+
     post {
         always {
+            echo 'Cleaning up the workspace and containers...'
+            sh 'docker-compose down'
             cleanWs()
+        }
+        failure {
+            echo 'Tests failed, fetching logs...'
+            sh 'docker logs followspot-pipeline-db-1'
+            sh 'docker logs followspot-pipeline-app-1'
         }
     }
 }
