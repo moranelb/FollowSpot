@@ -9,7 +9,7 @@ services:
       - "5000:5000"
     environment:
       FLASK_ENV: development
-      DATABASE_URL: postgresql://postgres:password@db:5432/mydatabase  # Match this with the Dockerfile
+      DATABASE_URL: postgresql://postgres:password@db:5432/mydatabase  # Ensure this matches the Dockerfile
     command: flask run --host=0.0.0.0
     depends_on:
       db:
