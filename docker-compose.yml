@@ -23,14 +23,13 @@ services:
       retries: 5
 
   db:
-    image: postgres:latest  # Use latest instead of alpine
+    image: postgres:13  # Set to PostgreSQL version 13 to match existing data directory
     volumes:
       - pgdata:/var/lib/postgresql/data
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
       POSTGRES_DB: mydatabase
-    command: ["sh", "-c", "chown -R postgres:postgres /var/lib/postgresql/data && docker-entrypoint.sh postgres"]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -40,7 +39,7 @@ services:
       - app-network
 
 volumes:
-  pgdata:
+  pgdata:  # Persist the PostgreSQL data
 
 networks:
   app-network:
