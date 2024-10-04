@@ -19,7 +19,7 @@ services:
   app:
     build:
       context: .
-    command: ["./wait-for-postgres.sh", "db", "flask", "run", "--host=0.0.0.0"]  # Added 'db' here to pass the service name to the script
+    command: ["./wait-for-postgres.sh", "db", "flask", "run", "--host=0.0.0.0"]  # The service name 'db' is passed to wait-for-postgres.sh
     environment:
       - FLASK_APP=server.py
       - DATABASE_URL=postgres://postgres:password@db:5432/appdb
@@ -27,7 +27,7 @@ services:
       - "5000:5000"
     depends_on:
       db:
-        condition: service_healthy  # Ensures the app waits for the database to be healthy before starting
+        condition: service_healthy  # Ensures app waits until db is healthy
 
 volumes:
   db_data:
