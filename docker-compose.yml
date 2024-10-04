@@ -1,39 +1,44 @@
-version: '3.8'
+version: "3.8"
 
 services:
+  db:
+    image: postgres:13
+    container_name: followspot-pipeline-db
+    environment:
+      POSTGRES_DB: followspotdb
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d followspotdb"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - app-network
+
   app:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: followspot-pipeline-app
-    ports:
-      - "8000:8000"
     depends_on:
       db:
         condition: service_healthy
+    ports:
+      - "8000:8000"
     networks:
       - app-network
-
-  db:
-    image: postgres:13
-    container_name: followspot-pipeline-db
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: appdb
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8000 || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    networks:
-      - app-network
-
-volumes:
-  pgdata:
 
 networks:
   app-network:
     driver: bridge
+
+volumes:
+  pgdata:
