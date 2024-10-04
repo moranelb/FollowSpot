@@ -53,8 +53,10 @@ pipeline {
                     try {
                         sh 'docker-compose exec app coverage run -m unittest discover'
                     } catch (Exception e) {
-                        echo 'Tests failed, fetching database logs...'
-                        sh 'docker logs followspot-pipeline-db-1'
+                        echo 'Tests failed, fetching application logs...'
+                        sh 'docker logs followspot-pipeline-app-1' // Fetching application logs
+                        echo 'Fetching database logs...'
+                        sh 'docker logs followspot-pipeline-db-1' // Fetching database logs
                         error('Tests failed during execution.')
                     }
                 }
