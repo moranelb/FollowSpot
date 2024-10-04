@@ -11,6 +11,15 @@ RUN apt-get update && apt-get install -y \
     postgresql && \
     rm -rf /var/lib/apt/lists/*
 
+# Create a non-root user for PostgreSQL operations
+RUN useradd -m postgresuser
+
+# Set ownership of the app directory to the non-root user
+RUN chown -R postgresuser /app
+
+# Switch to the non-root user
+USER postgresuser
+
 # Copy the requirements file and install dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
