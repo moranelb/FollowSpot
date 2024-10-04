@@ -14,11 +14,7 @@ RUN apt-get update && apt-get install -y \
 # Create a non-root user for PostgreSQL operations
 RUN useradd -m postgresuser
 
-# Copy the wait-for-postgres.sh script and set permissions while still root
-COPY wait-for-postgres.sh /app/wait-for-postgres.sh
-RUN chmod +x /app/wait-for-postgres.sh
-
-# Set ownership of the app directory and the script to the non-root user
+# Set ownership of the app directory to the non-root user
 RUN chown -R postgresuser /app
 
 # Switch to the non-root user
@@ -41,5 +37,10 @@ EXPOSE 5000
 ENV FLASK_APP=server.py
 ENV DATABASE_URL=postgres://postgres:password@db:5432/appdb
 
-# Command to run the app, using wait-for-postgres.sh to ensure DB is ready
-CMD ["/app/wait-for-postgres.sh", "flask", "run", "--host=0.0.0.0"]
+# Command to run the app, including wait logic for Postgres inside the CMD
+CMD bash -c '
+  until pg_isready -h db -U postgres; do
+    echo "Waiting for postgres...";
+    sleep 2;
+  done;
+  flask run --host=0.0.0.0'
