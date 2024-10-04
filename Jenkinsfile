@@ -17,7 +17,6 @@ pipeline {
             steps {
                 script {
                     try {
-                        // Build and run the app with Docker Compose
                         sh 'docker-compose up --build -d'
                     } catch (Exception e) {
                         error('Error while building or running Docker Compose.')
@@ -31,7 +30,6 @@ pipeline {
                 echo 'Checking if PostgreSQL is running...'
                 script {
                     try {
-                        // Ensure PostgreSQL is healthy
                         sh 'docker-compose exec db pg_isready'
                     } catch (Exception e) {
                         error('PostgreSQL is not healthy.')
@@ -40,11 +38,19 @@ pipeline {
             }
         }
 
+        stage('Verify PostgreSQL Users') {
+            steps {
+                script {
+                    echo 'Verifying PostgreSQL users...'
+                    sh 'docker-compose exec db psql -U postgres -d appdb -c "\\du"'
+                }
+            }
+        }
+
         stage('Run Tests') {
             steps {
                 script {
                     try {
-                        // Run tests
                         sh 'docker-compose exec app coverage run -m unittest discover'
                     } catch (Exception e) {
                         echo 'Tests failed, fetching database logs...'
