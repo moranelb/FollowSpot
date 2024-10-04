@@ -11,7 +11,8 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git credentialsId: 'github-creds', url: 'https://github.com/moranelb/FollowSpot.git', git branch: 'master'
+                // The 'branch' argument should be outside the 'git' function and not as 'git branch:'
+                git branch: 'master', credentialsId: 'github-creds', url: 'https://github.com/moranelb/FollowSpot.git'
             }
         }
 
@@ -23,6 +24,7 @@ pipeline {
 
         stage('Run Tests') {
             steps {
+                // Run the tests using 'coverage' inside the app container
                 sh 'docker-compose exec app coverage run -m unittest discover'
             }
         }
@@ -31,6 +33,7 @@ pipeline {
             steps {
                 script {
                     docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-cred') {
+                        // Build and push the Docker image to Docker Hub
                         def appImage = docker.build("moranelb/followspot:${env.BUILD_NUMBER}")
                         appImage.push()
                     }
@@ -40,6 +43,7 @@ pipeline {
 
         stage('Teardown') {
             steps {
+                // Stop and remove the Docker containers after the build
                 sh 'docker-compose down'
             }
         }
@@ -47,6 +51,7 @@ pipeline {
 
     post {
         always {
+            // Clean the workspace after each run
             cleanWs()
         }
     }
