@@ -24,7 +24,7 @@ pipeline {
                     } catch (e) {
                         // Capture and print logs from the DB container if there is a failure
                         echo 'Build or startup failed. Fetching PostgreSQL logs...'
-                        sh 'docker logs followspot-pipeline-db-1 || true'
+                        sh 'docker logs followspot-pipeline-db-1 || true'  // ADD THIS FOR DEBUGGING
                         throw e  // Rethrow the error to mark the build as failed
                     }
                 }
