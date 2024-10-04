@@ -9,7 +9,7 @@ pipeline {
     stages {
         stage('Checkout Code') {
             steps {
-                git url: 'https://github.com/moranelb/FollowSpot.git', branch: 'main'
+                git url: 'https://github.com/moranelb/FollowSpot.git', branch: 'master'
             }
         }
         stage('Build Docker Image') {
