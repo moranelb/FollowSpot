@@ -24,9 +24,22 @@ pipeline {
                     } catch (e) {
                         // Capture and print logs from the DB container if there is a failure
                         echo 'Build or startup failed. Fetching PostgreSQL logs...'
-                        sh 'docker logs followspot-pipeline-db-1 || true'  // ADD THIS FOR DEBUGGING
+                        sh 'docker logs followspot-pipeline-db-1 || true'
                         throw e  // Rethrow the error to mark the build as failed
                     }
+                }
+            }
+        }
+
+        stage('Check PostgreSQL Status') {
+            steps {
+                script {
+                    // Check if the PostgreSQL container socket is available
+                    echo 'Checking if PostgreSQL is listening on the expected socket...'
+                    sh 'docker exec followspot-pipeline-db-1 ls /var/run/postgresql/.s.PGSQL.5432 || true'
+                    
+                    // Check the health status of the PostgreSQL container
+                    sh 'docker-compose ps'
                 }
             }
         }
@@ -52,7 +65,7 @@ pipeline {
         stage('Teardown') {
             steps {
                 script {
-                    // Stop and remove containers and associated volumes for clean slate
+                    // Stop and remove containers and associated volumes for a clean slate
                     sh 'docker-compose down -v'
                 }
             }
