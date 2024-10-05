@@ -1,13 +1,14 @@
 """Server for FollowSpot"""
 from flask import (Flask, jsonify, render_template, request, flash, session, redirect)
-from . import crud
+from crud import *
 import os
 from twilio.rest import Client
 import cloudinary.uploader
 import cloudinary.api
 from cloudinary.utils import cloudinary_url
 from flask_cors import CORS, cross_origin
-from .model import connect_to_db, db, User, Audition, Project, Media
+from model import *
+#from model import connect_to_db, db, User, Audition, Project, Media
 from datetime import datetime
 
 #import custom stuff
