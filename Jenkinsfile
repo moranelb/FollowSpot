@@ -51,8 +51,10 @@ pipeline {
             steps {
                 script {
                     try {
-                        sh 'sleep 5' // Give the app time to start
-                        sh 'docker-compose exec app coverage run -m unittest discover'
+                        // Sleep to give the app time to start
+                        sh 'sleep 5'
+                        // Set PYTHONPATH and run tests as a module
+                        sh 'docker-compose exec app sh -c "export PYTHONPATH=`pwd` && python -m server"'
                     } catch (Exception e) {
                         echo 'Tests failed, fetching application logs...'
                         sh 'docker logs followspot-pipeline-app-1' // Fetching application logs
