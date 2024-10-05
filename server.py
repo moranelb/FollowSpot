@@ -1,6 +1,6 @@
 """Server for FollowSpot"""
 from flask import (Flask, jsonify, render_template, request, flash, session, redirect)
-import crud
+from . import crud
 import os
 from twilio.rest import Client
 import cloudinary.uploader
