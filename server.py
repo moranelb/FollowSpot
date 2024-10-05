@@ -11,7 +11,7 @@ from .model import connect_to_db, db, User, Audition, Project, Media
 from datetime import datetime
 
 #import custom stuff
-from utils.cipher import hashed
+from .utils.cipher import hashed
 
 app = Flask(__name__)
 CORS(app)
