@@ -1,4 +1,4 @@
-from model import connect_to_db, db, User, Audition, Project, Media
+from .model import connect_to_db, db, User, Audition, Project, Media
 from datetime import datetime
 
 ###########################USER######################################
